@@ -13,6 +13,7 @@
             margin: 0;
             padding: 0;
             font-family: Arial, sans-serif;
+            background-color: #d4e6f7;
         }
 
         #map {
@@ -81,7 +82,7 @@
     <script>
         // Проверка загрузки ресурсов
         function checkResources() {
-            const resources = ['russia-map.png', 'oil-icon.png'];
+            const resources = ['ocean.jpg', 'oil-icon.png', 'russia-map.png'];
             let loaded = 0;
 
             resources.forEach(resource => {
@@ -112,17 +113,19 @@
                 const map = L.map('map').setView([62, 94], 3);
                 document.getElementById('loading').style.display = 'none';
 
-                // Границы карты России (подогнать под ваше изображение)
-                const imageBounds = [[40, 30], [80, 180]];
+                // Добавление фонового изображения океана
+                const oceanBounds = [[-90, -180], [90, 180]];
+                L.imageOverlay('ocean.jpg', oceanBounds).addTo(map);
 
-                // Добавление фонового изображения карты России
-                L.imageOverlay('russia-map.png', imageBounds).addTo(map);
+                // Добавление карты России поверх океана
+                const russiaBounds = [[40, 30], [80, 180]];
+                L.imageOverlay('russia-map.png', russiaBounds).addTo(map);
 
-                // Координаты месторождений
+                // Координаты месторождений (скорректированные)
                 const deposits = [
                     {
                         name: "Приразломное",
-                        coords: [69.25, 57.25], // Печорское море
+                        coords: [72.5, 56.5], // Печорское море (смещено правее и выше)
                         description: `
                   <div class="oil-popup">
                     <b>Приразломное месторождение (Печорское море, Арктика)</b>
@@ -137,7 +140,7 @@
                     },
                     {
                         name: "Ванкорское",
-                        coords: [67.8, 83.5], // Красноярский край
+                        coords: [68.5, 92.0], // Красноярский край (смещено правее)
                         description: `
                   <div class="oil-popup">
                     <b>Ванкорское месторождение (Красноярский край, Сибирь)</b>
@@ -152,7 +155,7 @@
                     },
                     {
                         name: "Самотлорское",
-                        coords: [61.1, 76.7], // ХМАО
+                        coords: [61.5, 78.0], // ХМАО (смещено правее)
                         description: `
                   <div class="oil-popup">
                     <b>Самотлорское месторождение (ХМАО, Западная Сибирь)</b>
@@ -167,7 +170,7 @@
                     },
                     {
                         name: "Ромашкинское",
-                        coords: [54.6, 51.8], // Татарстан
+                        coords: [55.0, 53.0], // Татарстан (смещено правее и выше)
                         description: `
                   <div class="oil-popup">
                     <b>Ромашкинское месторождение (Республика Татарстан)</b>
@@ -182,7 +185,7 @@
                     },
                     {
                         name: "Штокмановское",
-                        coords: [73.0, 44.0], // Баренцево море
+                        coords: [73.5, 46.0], // Баренцево море (смещено правее)
                         description: `
                   <div class="oil-popup">
                     <b>Штокмановское месторождение (Баренцево море, офшор)</b>
@@ -197,7 +200,7 @@
                     },
                     {
                         name: "Уренгойское",
-                        coords: [66.1, 76.9], // ЯНАО
+                        coords: [66.5, 78.5], // ЯНАО (смещено правее)
                         description: `
                   <div class="oil-popup">
                     <b>Уренгойское месторождение (ЯНАО, Западная Сибирь)</b>
@@ -212,7 +215,7 @@
                     },
                     {
                         name: "Туймазинское",
-                        coords: [54.6, 53.5], // Башкортостан
+                        coords: [55.0, 55.0], // Башкортостан (смещено правее и выше)
                         description: `
                   <div class="oil-popup">
                     <b>Туймазинское месторождение (Республика Башкортостан)</b>
@@ -243,7 +246,7 @@
                 });
 
                 // Ограничение области просмотра
-                map.setMaxBounds(imageBounds);
+                map.setMaxBounds(russiaBounds);
 
             } catch (error) {
                 showError(`Ошибка инициализации карты: ${error.message}`);
