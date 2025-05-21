@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Начнём с выбора месторождения!</title>
+    <title>Нефтяные месторождения России</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -13,13 +13,11 @@
             margin: 0;
             padding: 0;
             font-family: Arial, sans-serif;
-            background-color: #d4e6f7; /* Голубой фон страницы */
         }
 
         #map {
             width: 100%;
             height: 100vh;
-            background-color: #c1d9f0; /* Светло-голубой фон карты */
         }
 
         .oil-popup {
@@ -44,95 +42,216 @@
                 margin-bottom: 4px;
             }
 
-        .map-title {
+        .map-header {
             position: absolute;
             top: 10px;
-            left: 10px;
+            left: 50%;
+            transform: translateX(-50%);
             z-index: 1000;
-            background: rgba(255, 255, 255, 0.8);
-            padding: 5px 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 20px;
             border-radius: 5px;
             font-weight: bold;
-            font-size: 18px;
+            font-size: 20px;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
         }
     </style>
 </head>
 <body>
     <div id="map"></div>
-    <div class="map-title">Начнём с выбора месторождения!</div>
+    <div class="map-header">Начнём с выбора месторождения!</div>
+    <div class="loading" id="loading">Загрузка карты...</div>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 
     <script>
-        // Координаты месторождений (исправленные)
-        const deposits = [
-            {
-                name: "Приразломное месторождение",
-                coords: [72.0, 54.0], // Печорское море (исправлено)
-                description: `
-              <div class="oil-popup">
-                <b>Приразломное месторождение (Печорское море, Арктика)</b>
-                <ul>
-                  <li>Запасы: 300 млн баррелей</li>
-                  <li>Сложность бурения: 5 (экстремальные температуры, льды)</li>
-                  <li>Экологические риски: 5 (риск разливов в холодной воде)</li>
-                  <li>Стоимость: 80 тыс. мгр</li>
-                </ul>
-              </div>
-            `
-            },
-            {
-                name: "Ванкорское",
-                coords: [69.0, 90.0], // Красноярский край (исправлено)
-                description: `
-              <div class="oil-popup">
-                <b>Ванкорское месторождение (Красноярский край)</b>
-                <ul>
-                  <li>Запасы: 500 млн баррелей</li>
-                  <li>Сложность бурения: 3 (вечная мерзлота, удалённость)</li>
-                  <li>Экологические риски: 4 (риск причинения вреда тундре)</li>
-                  <li>Стоимость: 120 тыс. мгр</li>
-                </ul>
-              </div>
-            `
-            },
-            {
-                name: "Самотлорское",
-                coords: [61.1, 76.7], // ХМАО (исправлено)
-                description: `
-              <div class="oil-popup">
-                <b>Самотлорское месторождение (ХМАО)</b>
-                <ul>
-                  <li>Запасы: 700 млн баррелей</li>
-                  <li>Сложность бурения: 2 (высокий уровень обводнённости)</li>
-                  <li>Экологические риски: 3 (загрязнение грунтовых вод)</li>
-                  <li>Стоимость: 150 тыс. мгр</li>
-                </ul>
-              </div>
-            `
-            },
-            {
-                name: "Ромашкинское месторождение",
-                coords: [54.6, 51.8], // Татарстан (исправлено)
-                description: `
-              <div class="oil-popup">
-                <b>Ромашкинское месторождение (Татарстан)</b>
-                <ul>
-                  <li>Запасы: 400 млн баррелей</li>
-                  <li>Сложность бурения: 1 (лёгкая добыча, тяжёлая нефть)</li>
-                  <li>Экологические риски: 2 (требуется глубокая переработка)</li>
-                  <li>Стоимость: 90 тыс. мгр</li>
-                </ul>
-              </div>
-            `
-            },
-            {
-                name: "Штокмановское месторождение",
-                coords: [73.0, 44.0], // Баренцево море (исправлено)
-                description: `
-              <div class="oil-popup">
-                <b>Штокмановское месторождение (Баренцево море, офшор)</b>
-                <ul>
-                  <li>Запасы: 600 млн баррелей</li>
-                  <li
+        // Проверка загрузки ресурсов
+        function checkResources() {
+            const resources = ['russia-map.png', 'oil-icon.png'];
+            let loaded = 0;
+
+            resources.forEach(resource => {
+                const img = new Image();
+                img.src = resource;
+                img.onload = () => {
+                    loaded++;
+                    if (loaded === resources.length) {
+                        initMap();
+                    }
+                };
+                img.onerror = () => {
+                    showError(`Ошибка загрузки: ${resource}`);
+                };
+            });
+        }
+
+        // Показать сообщение об ошибке
+        function showError(message) {
+            const loading = document.getElementById('loading');
+            loading.innerHTML = message;
+            loading.style.color = 'red';
+        }
+
+        // Инициализация карты
+        function initMap() {
+            try {
+                const map = L.map('map').setView([62, 94], 3);
+                document.getElementById('loading').style.display = 'none';
+
+                // Границы карты России (подогнать под ваше изображение)
+                const imageBounds = [[40, 30], [80, 180]];
+
+                // Добавление фонового изображения карты России
+                L.imageOverlay('russia-map.png', imageBounds).addTo(map);
+
+                // Координаты месторождений
+                const deposits = [
+                    {
+                        name: "Приразломное",
+                        coords: [69.25, 57.25], // Печорское море
+                        description: `
+                  <div class="oil-popup">
+                    <b>Приразломное месторождение (Печорское море, Арктика)</b>
+                    <ul>
+                      <li>Запасы: 300 млн баррелей</li>
+                      <li>Сложность бурения: 5/5 (экстремальные температуры, льды)</li>
+                      <li>Экологические риски: 5/5 (риск разливов в холодной воде)</li>
+                      <li>Стоимость: 80 тыс. мгр</li>
+                    </ul>
+                  </div>
+                `
+                    },
+                    {
+                        name: "Ванкорское",
+                        coords: [67.8, 83.5], // Красноярский край
+                        description: `
+                  <div class="oil-popup">
+                    <b>Ванкорское месторождение (Красноярский край, Сибирь)</b>
+                    <ul>
+                      <li>Запасы: 500 млн баррелей</li>
+                      <li>Сложность бурения: 3/5 (вечная мерзлота, удалённость)</li>
+                      <li>Экологические риски: 4/5 (риск нанесения вреда хрупкой тундре)</li>
+                      <li>Стоимость: 120 тыс. мгр</li>
+                    </ul>
+                  </div>
+                `
+                    },
+                    {
+                        name: "Самотлорское",
+                        coords: [61.1, 76.7], // ХМАО
+                        description: `
+                  <div class="oil-popup">
+                    <b>Самотлорское месторождение (ХМАО, Западная Сибирь)</b>
+                    <ul>
+                      <li>Запасы: 700 млн баррелей</li>
+                      <li>Сложность бурения: 2/5 (высокий уровень обводнённости)</li>
+                      <li>Экологические риски: 3/5 (загрязнение грунтовых вод)</li>
+                      <li>Стоимость: 150 тыс. мгр</li>
+                    </ul>
+                  </div>
+                `
+                    },
+                    {
+                        name: "Ромашкинское",
+                        coords: [54.6, 51.8], // Татарстан
+                        description: `
+                  <div class="oil-popup">
+                    <b>Ромашкинское месторождение (Республика Татарстан)</b>
+                    <ul>
+                      <li>Запасы: 400 млн баррелей</li>
+                      <li>Сложность бурения: 1/5 (лёгкая добыча, тяжёлая нефть)</li>
+                      <li>Экологические риски: 2/5 (требуется глубокая переработка)</li>
+                      <li>Стоимость: 90 тыс. мгр</li>
+                    </ul>
+                  </div>
+                `
+                    },
+                    {
+                        name: "Штокмановское",
+                        coords: [73.0, 44.0], // Баренцево море
+                        description: `
+                  <div class="oil-popup">
+                    <b>Штокмановское месторождение (Баренцево море, офшор)</b>
+                    <ul>
+                      <li>Запасы: 600 млн баррелей</li>
+                      <li>Сложность бурения: 4/5 (глубоководное, штормы)</li>
+                      <li>Экологические риски: 4/5 (риск аварий в открытом море)</li>
+                      <li>Стоимость: 130 тыс. мгр</li>
+                    </ul>
+                  </div>
+                `
+                    },
+                    {
+                        name: "Уренгойское",
+                        coords: [66.1, 76.9], // ЯНАО
+                        description: `
+                  <div class="oil-popup">
+                    <b>Уренгойское месторождение (ЯНАО, Западная Сибирь)</b>
+                    <ul>
+                      <li>Запасы: 450 млн баррелей</li>
+                      <li>Сложность бурения: 3/5 (метановые газовые шапки)</li>
+                      <li>Экологические риски: 3/5 (риск выбросов сероводорода)</li>
+                      <li>Стоимость: 100 тыс. мгр</li>
+                    </ul>
+                  </div>
+                `
+                    },
+                    {
+                        name: "Туймазинское",
+                        coords: [54.6, 53.5], // Башкортостан
+                        description: `
+                  <div class="oil-popup">
+                    <b>Туймазинское месторождение (Республика Башкортостан)</b>
+                    <ul>
+                      <li>Запасы: 300 млн баррелей</li>
+                      <li>Сложность бурения: 2/5 (глубина до 2 км)</li>
+                      <li>Экологические риски: 3/5 (риск прорыва пластовых вод)</li>
+                      <li>Стоимость: 80 тыс. мгр</li>
+                    </ul>
+                  </div>
+                `
+                    }
+                ];
+
+                // Создание кастомной иконки
+                const oilIcon = L.icon({
+                    iconUrl: 'oil-icon.png',
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 32],
+                    popupAnchor: [0, -32]
+                });
+
+                // Добавление меток на карту
+                deposits.forEach(deposit => {
+                    L.marker(deposit.coords, { icon: oilIcon })
+                        .addTo(map)
+                        .bindPopup(deposit.description);
+                });
+
+                // Ограничение области просмотра
+                map.setMaxBounds(imageBounds);
+
+            } catch (error) {
+                showError(`Ошибка инициализации карты: ${error.message}`);
+            }
+        }
+
+        // Запуск проверки ресурсов
+        checkResources();
+    </script>
+</body>
+</html>
